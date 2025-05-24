@@ -1,0 +1,93 @@
+﻿@page "/admin/about"
+@using System.Diagnostics
+@using MoongladePure.Utils
+@using System.Globalization
+@inject IWebHostEnvironment WebHostEnvironment
+
+@{
+    var process = Process.GetCurrentProcess();
+}
+
+<partial name="_DiagnosisHeader" />
+
+<div class="ps-4 pe-4">
+    <div class="row">
+        <table class="table table-borderless">
+            <thead class="table-light">
+                <tr>
+                    <th colspan="2">
+                        <i class="bi-moon-stars"></i>
+                        @SharedLocalizer["MoongladePure Configuration"]
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="w-25">@SharedLocalizer["Version"]</td>
+                    <td>@Helper.AppVersion</td>
+                </tr>
+                <tr>
+                    <td>@SharedLocalizer["Environment"]</td>
+                    <td>@WebHostEnvironment.EnvironmentName</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="row">
+        <table class="table table-borderless">
+            <thead class="table-light">
+                <tr>
+                    <th colspan="2">
+                        <i class="bi-tools"></i>
+                        @SharedLocalizer["Server Information"]
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="w-25">@SharedLocalizer["System"]</td>
+                    <td>@Helper.TryGetFullOSVersion() @(Environment.Is64BitOperatingSystem ? "(64-bit)": "(32-bit)")</td>
+                </tr>
+                <tr>
+                    <td>@SharedLocalizer["Directory"]</td>
+                    <td>@Environment.CurrentDirectory</td>
+                </tr>
+                <tr>
+                    <td>@SharedLocalizer["Machine Name"]</td>
+                    <td>@Environment.MachineName</td>
+                </tr>
+                <tr>
+                    <td>@SharedLocalizer["User Name"]</td>
+                    <td>@Environment.UserDomainName\@Environment.UserName</td>
+                </tr>
+                <tr>
+                    <td>@SharedLocalizer[".NET Version"]</td>
+                    <td>@Environment.Version</td>
+                </tr>
+                <tr>
+                    <td>@SharedLocalizer["Worker Process"]</td>
+                    <td>[@process.Id] @process.ProcessName @(Environment.Is64BitProcess ? "(64-bit)" : "(32-bit)")</td>
+                </tr>
+                <tr>
+                    <td>@SharedLocalizer["Start Time"]</td>
+                    <td data-utc-time="@process.StartTime.ToUniversalTime().ToString(CultureInfo.InvariantCulture)"></td>
+                </tr>
+                <tr>
+                    <td>@SharedLocalizer["Memory"]</td>
+                    <td>@(process.WorkingSet64 / 1024 / 1024) MB</td>
+                </tr>
+                <tr>
+                    <td>@SharedLocalizer["Docker Container"]</td>
+                    <td>@(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <a class="mt-2 d-inline-block" href="https://gitlab.aiursoft.cn/Aiursoft/MoongladePure/issues/new" target="_blank">
+            <i class="bi-bug"></i>
+            Report an issue
+        </a>
+    </div>
+
+</div>

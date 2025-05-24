@@ -1,0 +1,228 @@
+﻿@using System.Globalization
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@using MoongladePure.Utils
+@using MoongladePure.Web.TagHelpers
+@{
+    if (string.IsNullOrEmpty(BlogConfig.GeneralSettings.AvatarUrl))
+    {
+        BlogConfig.GeneralSettings.AvatarUrl = Url.Action("Avatar", "Assets");
+    }
+}
+<!DOCTYPE html>
+<html lang="@CultureInfo.CurrentCulture.TwoLetterISOLanguageName">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    @if (IsSectionDefined("keywords"))
+    {
+        @await RenderSectionAsync("keywords", false)
+    }
+    else
+    {
+        <meta name="keywords" content="@Html.Raw(BlogConfig.GeneralSettings.MetaKeyword)" />
+    }
+
+    @await RenderSectionAsync("meta", false)
+    @if (IsSectionDefined("opengraph"))
+    {
+        @await RenderSectionAsync("opengraph", false)
+    }
+    else
+    {
+        <partial name="_OpenGraph" />
+    }
+
+    @if (IsSectionDefined("metadescription"))
+    {
+        @await RenderSectionAsync("metadescription", false)
+    }
+    else
+    {
+        <metadesc description="@BlogConfig.GeneralSettings.Description" />
+    }
+
+    <title>
+        @(ViewBag.TitlePrefix)@(null == ViewBag.TitlePrefix ? string.Empty : " - ")@BlogConfig.GeneralSettings.SiteTitle
+    </title>
+
+    @if (BlogConfig.ImageSettings.EnableCdnRedirect &&
+    !string.IsNullOrWhiteSpace(BlogConfig.ImageSettings.CdnEndpoint))
+    {
+        <link rel="dns-prefetch" href="@Helper.GetDNSPrefetchUrl(BlogConfig.ImageSettings.CdnEndpoint)" />
+    }
+
+
+    <link rel="start" title="@BlogConfig.GeneralSettings.SiteTitle" href="~/" />
+    <rss title="@BlogConfig.FeedSettings.RssTitle" href="@(Url.Action("Rss", "Subscription") ?? string.Empty)" />
+    @if (BlogConfig.AdvancedSettings.EnableOpenSearch)
+    {
+        <opensearch href="/opensearch" title="@BlogConfig.GeneralSettings.SiteTitle" />
+    }
+
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <rsd href="/rsd" />
+    <foaf href="/foaf.xml" />
+    <partial name="_Favicons" />
+    <link href="~/node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/node_modules/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/base.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/rwd.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/darkmode.css" rel="stylesheet" asp-append-version="true" />
+    @await RenderSectionAsync("head", false)
+    <link href="~/theme.css" rel="stylesheet" asp-append-version="true" />
+    @if (BlogConfig.CustomStyleSheetSettings.EnableCustomCss)
+    {
+        <link href="~/custom.css" rel="stylesheet" asp-append-version="true" />
+    }
+    <script src="~/js/3rd/jquery-3.6.3.min.js" asp-append-version="true"></script>
+</head>
+<body class="@ViewBag.BodyClass">
+    @if (BlogConfig.ContentSettings.ShowCalloutSection)
+    {
+        <section class="call-out">
+            @Html.Raw(BlogConfig.ContentSettings.CalloutSectionHtmlPitch)
+        </section>
+    }
+
+    <header class="sticky-top d-print-none">
+        <nav id="blog-nav" class="navbar navbar-expand-lg navbar-dark bg-accent1">
+            <div class="container">
+                <div class="animbrand">
+                    <a class="moonglade-logo font-sairas navbar-brand animate" href="/">
+                        @BlogConfig.GeneralSettings.LogoText
+                    </a>
+                </div>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#blog-navbar-content" aria-controls="blog-navbar-content" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="blog-navbar-content">
+                    <ul class="navbar-nav me-auto">
+                        <!-- System Nav Menu -->
+                        <li id="navbar-dropdown-post" class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown">
+                                <i class="bi-folder2 nav-item-icon"></i>
+                                <strong>@SharedLocalizer["Categories"]</strong>
+                            </a>
+                            @await Component.InvokeAsync("CategoryList", new { isMenu = true })
+                        </li>
+
+                        <li class="nav-item">
+                            <a asp-page="/Tags" class="nav-link">
+                                <i class="bi-tag nav-item-icon"></i>
+                                <strong>@SharedLocalizer["Tags"]</strong>
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a asp-page="/Archive" class="nav-link">
+                                <i class="bi-calendar3 nav-item-icon"></i>
+                                <strong>@SharedLocalizer["Archive"]</strong>
+                            </a>
+                        </li>
+
+                        @await Component.InvokeAsync("Menu")
+                    </ul>
+                    <form class="d-flex search-form my-2 my-lg-0" action="/search" method="get">
+                        <input id="term"
+                               class="form-control bg-transparent me-sm-2"
+                               type="search"
+                               value=""
+                               title="@SharedLocalizer["Search"]"
+                               aria-label="Search"
+                               placeholder="@SharedLocalizer["Search"]"
+                               name="term"
+                               autofocus="autofocus"
+                               maxlength="30">
+                        <button class="btn btn-outline-light btn-search my-sm-0" type="submit" title="Search"><i class="bi-search"></i></button>
+                    </form>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div id="page-content" class="content">
+        @if (null != ViewBag.HideSideBar && ViewBag.HideSideBar)
+        {
+            @RenderBody()
+        }
+        else
+        {
+            <section class="profile-mobile d-block d-sm-none d-print-none">
+                <div class="card-bkimg-container">
+                    <img class="card-bkimg" src="@BlogConfig.GeneralSettings.AvatarUrl" alt="@BlogConfig.GeneralSettings.OwnerName" />
+                </div>
+                <div class="blogger-intro-content">
+                    <div class="row">
+                        <div class="col-3">
+                            <img src="@BlogConfig.GeneralSettings.AvatarUrl"
+                             alt="@BlogConfig.GeneralSettings.OwnerName"
+                             class="rounded-circle blogger-head-pic" />
+                        </div>
+                        <div class="col-9">
+                            <h4 class="text-center">
+                                @BlogConfig.GeneralSettings.ShortDescription
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <div class="container mt-4 mb-5">
+                <div class="row">
+                    @if (BlogConfig.GeneralSettings.SideBarOption == SideBarOption.Left)
+                    {
+                        <partial name="_Aside" />
+                    }
+
+                    <section class="col-md-12 @(BlogConfig.GeneralSettings.SideBarOption == SideBarOption.Disabled ? null : "col-lg-9")">
+                        @RenderBody()
+                    </section>
+
+                    @if (BlogConfig.GeneralSettings.SideBarOption == SideBarOption.Right)
+                    {
+                        <partial name="_Aside" />
+                    }
+                </div>
+            </div>
+        }
+    </div>
+    <div class="clearfix"></div>
+    <partial name="_Footer" />
+    <partial name="_EnvInfo" />
+    <partial name="_Toast" />
+
+    <script src="~/node_modules/bootstrap/dist/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
+    <script type="module" src="~/js/app/base.js" asp-append-version="true"></script>
+    <script src="~/js/app/httpService.js" asp-append-version="true"></script>
+    <script type="module">
+        import UtcTime from '/node_modules/@@aiursoft/utctime.js/dist/esm/utctime.js'
+        new UtcTime({
+          onSet: function (element, date) {
+            new bootstrap.Tooltip(element, {
+                trigger: 'hover',
+                placement: 'top',
+                title: date.toLocaleString()
+            });
+          }
+        })
+    </script>
+
+
+    @if (BlogConfig.GeneralSettings.AutoDarkLightTheme && (ViewBag.DisableLightSwitch == null || !ViewBag.DisableLightSwitch))
+    {
+        <script type="module">
+            import * as theme from '/js/app/theme.module.js'
+            window.theme = theme;
+
+            if (window.matchMedia && window.theme) {
+                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    theme.useDarkMode();
+                } else {
+                    theme.useLightMode();
+                }
+            }
+        </script>
+    }
+
+    @await RenderSectionAsync("scripts", false)
+</body>
+</html>

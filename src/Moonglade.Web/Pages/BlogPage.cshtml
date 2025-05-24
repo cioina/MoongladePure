@@ -1,0 +1,58 @@
+﻿@page "/page/{slug}"
+@model MoongladePure.Web.Pages.BlogPageModel
+@using NUglify
+@using MoongladePure.Utils
+
+@{
+    ViewBag.TitlePrefix = Model.BlogPage.Title;
+    ViewBag.HideSideBar = Model.BlogPage.HideSidebar;
+    ViewBag.DisableLightSwitch = true;
+
+    string css = null;
+    if (!string.IsNullOrWhiteSpace(Model.BlogPage.CssContent))
+    {
+        var uglifyResult = Uglify.Css(Model.BlogPage.CssContent);
+        if (!uglifyResult.HasErrors)
+        {
+            css = uglifyResult.Code;
+        }
+    }
+
+}
+
+@section head{
+    <link href="~/css/timeline.css" rel="stylesheet" asp-append-version="true" />
+
+    @if (!string.IsNullOrWhiteSpace(css))
+    {
+        <style>
+            @Html.Raw(css)
+        </style>
+    }
+}
+
+@section metadescription{
+    <metadesc description="@Model.BlogPage.MetaDescription" />
+}
+
+@if (null != ViewBag.IsDraftPreview)
+{
+    <div class="container mt-3 mb-4">
+        <div class="alert alert-info">
+            @SharedLocalizer["This is a preview for draft content."]
+        </div>
+    </div>
+}
+
+<div class="page-content">
+    @if (BlogConfig.AdvancedSettings.AllowScriptsInPage)
+    {
+        @Html.Raw(Model.BlogPage.RawHtmlContent)
+    }
+    else
+    {
+        @Html.Raw(Helper.RemoveScriptTagFromHtml(Model.BlogPage.RawHtmlContent))
+    }
+</div>
+
+<partial name="_PageForestageAdmin" />

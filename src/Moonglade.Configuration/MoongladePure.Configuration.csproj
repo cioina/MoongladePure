@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Library</OutputType>
+        <TargetFramework>net9.0</TargetFramework>
+        <AssemblyName>MoongladePure.Configuration</AssemblyName>
+        <RootNamespace>MoongladePure.Configuration</RootNamespace>
+        <IsTestProject>false</IsTestProject>
+        <IsPackable>false</IsPackable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Moonglade.Data\MoongladePure.Data.csproj" />
+        <ProjectReference Include="..\Moonglade.Utils\MoongladePure.Utils.csproj" />
+    </ItemGroup>
+</Project>

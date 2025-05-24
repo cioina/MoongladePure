@@ -1,0 +1,31 @@
+﻿@page "/category/{routeName}"
+@model MoongladePure.Web.Pages.CategoryListModel
+@{
+    ViewBag.TitlePrefix = Model.Cat.DisplayName;
+    ViewBag.ActionName = "list";
+}
+
+<h3>
+    <a class="float-end d-none d-md-block"
+       asp-controller="Subscription"
+       asp-action="Rss"
+       asp-route-routeName="@Model.Cat.RouteName.ToLower()" target="_blank"
+       title="Subscribe @(Model.Cat.DisplayName)">
+        <i class="bi-rss font-125rem"></i>
+    </a>
+    <span>@Model.Cat.DisplayName</span>
+    <small class="d-none d-md-inline text-muted">@Model.Cat.Note</small>
+</h3>
+<hr />
+@if (Model.Posts.Any())
+{
+    <partial name="_PostList" model="Model.Posts" />
+}
+else
+{
+    <div class="alert alert-info">
+        @SharedLocalizer["No Posts"]
+    </div>
+}
+
+<partial name="_LightSwitch" />

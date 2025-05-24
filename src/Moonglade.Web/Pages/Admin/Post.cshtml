@@ -1,0 +1,91 @@
+﻿@page "/admin/post"
+@using System.Globalization
+@using X.PagedList.Mvc.Core
+@model MoongladePure.Web.Pages.Admin.PostModel
+@{
+    ViewBag.Title = "Manage Posts";
+}
+
+@section scripts{
+    <script>
+        function deleteConfirm(postid) {
+            var cfm = confirm("Delete Confirmation?");
+            if (cfm) {
+                deletePost(postid);
+            }
+        }
+
+        function deletePost(postid) {
+            console.info(postid);
+
+            callApi(`/api/post/${postid}/recycle`,
+                'DELETE',
+                {},
+                (resp) => {
+                    $(`#post-${postid}`).remove();
+                });
+        }
+    </script>
+}
+
+<partial name="_PostManageHeader" />
+
+
+<div class="ps-4 pe-4">
+    <form method="post">
+        <div class="d-flex search-box mb-4">
+            <input type="search" aria-label="Search" asp-for="SearchTerm" class="form-control" placeholder="Search" />
+            <button class="btn btn-light btn-search my-sm-0" type="submit"><i class="bi-search text-dark"></i></button>
+        </div>
+    </form>
+
+    @if (Model.PostSegments.Count == 0)
+    {
+        <partial name="_NoPosts"/>
+    }
+    else
+    {
+        foreach (var item in Model.PostSegments)
+        {
+            <div id="post-@item.Id">
+                <div class="d-flex">
+                    <div class="flex-grow-1">
+                        <a asp-page="/Post"
+                           asp-route-year="@item.PubDateUtc.GetValueOrDefault().Year"
+                           asp-route-month="@item.PubDateUtc.GetValueOrDefault().Month"
+                           asp-route-day="@item.PubDateUtc.GetValueOrDefault().Day"
+                           asp-route-slug="@item.Slug"
+                           title="@item.Slug"
+                           target="_blank">
+                            <h6>
+                                @item.Title
+                            </h6>
+                        </a>
+                        <div>
+                            <i class="bi-calendar-event"></i>
+                            <span class="text-muted me-2" data-utc-time="@item.PubDateUtc?.ToString(CultureInfo.InvariantCulture)">
+                            </span>
+
+                            <i class="bi-eye"></i>
+                            <span class="text-muted">@item.Hits</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <a class="btn btn-outline-accent btn-sm btn-edit" asp-page="./EditPost" asp-route-id="@item.Id"><i class="bi-pen"></i></a>
+                        <button class="btn btn-outline-danger btn-sm btn-delete" onclick="deleteConfirm('@item.Id')"><i class="bi-trash"></i></button>
+                    </div>
+                </div>
+                <hr/>
+            </div>
+        }
+
+        @Html.PagedListPager(Model.PostSegments, page => $"?pageIndex={page}&searchTerm={Model.SearchTerm}", new ()
+        {
+            LiElementClasses = new[] {"page-item"},
+            PageClasses = new[] {"page-link"},
+            UlElementClasses = new[] {"pagination justify-content-end"},
+            DisplayEllipsesWhenNotShowingAllPageNumbers = false
+        })
+    }
+</div>

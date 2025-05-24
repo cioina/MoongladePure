@@ -1,0 +1,9 @@
+﻿@model string
+
+@{
+    var content = BlogConfig.ImageSettings.EnableCdnRedirect ?
+        Model.ReplaceCdnEndpointToImgTags(BlogConfig.ImageSettings.CdnEndpoint) :
+        Model;
+}
+
+@Html.Raw(ContentProcessor.MarkdownToContent(content, ContentProcessor.MarkdownConvertType.Html, false))
