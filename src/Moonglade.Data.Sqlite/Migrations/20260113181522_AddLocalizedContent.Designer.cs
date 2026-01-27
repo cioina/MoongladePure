@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MoongladePure.Data.Sqlite;
 
@@ -10,12 +11,14 @@ using MoongladePure.Data.Sqlite;
 namespace MoongladePure.Data.Sqlite.Migrations
 {
     [DbContext(typeof(SqliteContext))]
-    partial class SqliteContextModelSnapshot : ModelSnapshot
+    [Migration("20260113181522_AddLocalizedContent")]
+    partial class AddLocalizedContent
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.2");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
 
             modelBuilder.Entity("MoongladePure.Data.Entities.BlogAssetEntity", b =>
                 {
@@ -296,10 +299,7 @@ namespace MoongladePure.Data.Sqlite.Migrations
                     b.Property<bool>("CommentEnabled")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("ContentAbstractEn")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ContentAbstractZh")
+                    b.Property<string>("ContentAbstract")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ContentLanguageCode")
@@ -333,9 +333,6 @@ namespace MoongladePure.Data.Sqlite.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("LastModifiedUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("LocalizeJobRunAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LocalizedChineseContent")

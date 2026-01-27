@@ -13,7 +13,8 @@ public class Post
     public string RawPostContent { get; set; }
     public bool CommentEnabled { get; set; }
     public DateTime CreateTimeUtc { get; set; }
-    public string ContentAbstract { get; set; }
+    public string ContentAbstractZh { get; set; }
+    public string ContentAbstractEn { get; set; }
     public bool IsPublished { get; set; }
     public bool IsFeedIncluded { get; set; }
     public bool Featured { get; set; }
@@ -22,6 +23,8 @@ public class Post
     public string OriginLink { get; set; }
     public string HeroImageUrl { get; set; }
     public string InlineCss { get; set; }
+    public string LocalizedChineseContent { get; set; }
+    public string LocalizedEnglishContent { get; set; }
     public Tag[] Tags { get; set; }
     public Category[] Categories { get; set; }
     public DateTime? PubDateUtc { get; set; }
@@ -33,8 +36,9 @@ public class Post
         Title = p.Title,
         Slug = p.Slug,
         Author = p.Author,
-        RawPostContent = p.PostContent,
-        ContentAbstract = p.ContentAbstract,
+        RawPostContent = p.RawContent,
+        ContentAbstractZh = p.ContentAbstractZh,
+        ContentAbstractEn = p.ContentAbstractEn,
         CommentEnabled = p.CommentEnabled,
         CreateTimeUtc = p.CreateTimeUtc,
         PubDateUtc = p.PubDateUtc,
@@ -47,6 +51,8 @@ public class Post
         HeroImageUrl = p.HeroImageUrl,
         InlineCss = p.InlineCss,
         ContentLanguageCode = p.ContentLanguageCode,
+        LocalizedChineseContent = p.LocalizedChineseContent,
+        LocalizedEnglishContent = p.LocalizedEnglishContent,
         Tags = p.Tags.Select(pt => new Tag
         {
             Id = pt.Id,

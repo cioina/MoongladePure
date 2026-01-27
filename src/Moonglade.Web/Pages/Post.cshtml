@@ -8,6 +8,8 @@
 
 @{
     ViewBag.BodyClass = "body-post-slug";
+    var isChinese = CultureInfo.CurrentUICulture.Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
+    var contentAbstract = isChinese ? (!string.IsNullOrWhiteSpace(Model.Post.ContentAbstractZh) ? Model.Post.ContentAbstractZh : Model.Post.ContentAbstractEn) : Model.Post.ContentAbstractEn;
 }
 
 @section keywords {
@@ -50,13 +52,13 @@
     <meta property="og:site_name" content="@BlogConfig.GeneralSettings.SiteTitle">
     <meta property="og:title" content="@Model.Post.Title">
     <meta property="og:type" content="article" />
-    <meta property="og:description" content="@Model.Post.ContentAbstract" />
+    <meta property="og:description" content="@contentAbstract" />
     <meta property="og:url" content="@($"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/post/{Model.Post.PubDateUtc.GetValueOrDefault().Year}/{Model.Post.PubDateUtc.GetValueOrDefault().Month}/{Model.Post.PubDateUtc.GetValueOrDefault().Day}/{Model.Post.Slug}")" />
     <link rel="canonical" href="@($"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/post/{Model.Post.PubDateUtc.GetValueOrDefault().Year}/{Model.Post.PubDateUtc.GetValueOrDefault().Month}/{Model.Post.PubDateUtc.GetValueOrDefault().Day}/{Model.Post.Slug}")" />
 }
 
 @section metadescription{
-    <metadesc description="@Model.Post.ContentAbstract" />
+    <metadesc description="@contentAbstract" />
 }
 
 @section scripts {
@@ -142,6 +144,36 @@
 
             <i class="bi-eye d-none d-sm-inline"></i>
             <span class="post-hit-number d-none d-sm-inline"><span class="post-hit-number-text">...</span> @SharedLocalizer["Reads"]</span>
+
+            <div class="dropdown d-inline-block ms-2">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi-translate"></i>
+                    @if (HttpContext.Request.Query["mode"] == "original")
+                    {
+                        @:Original
+                    }
+                    else if (CultureInfo.CurrentUICulture.Name == "zh-CN")
+                    {
+                        @:中文 (Simplified Chinese)
+                    }
+                    else if (CultureInfo.CurrentUICulture.Name == "en-US")
+                    {
+                        @:English
+                    }
+                    else
+                    {
+                        @:Original
+                    }
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                    <li><a class="dropdown-item" href="/api/settings/set-lang?culture=en-US&returnUrl=@Uri.EscapeDataString(HttpContext.Request.Path)">English</a></li>
+                    <li><a class="dropdown-item" href="/api/settings/set-lang?culture=zh-CN&returnUrl=@Uri.EscapeDataString(HttpContext.Request.Path)">中文 (Simplified Chinese)</a></li>
+                    @if (!string.IsNullOrWhiteSpace(Model.Post.ContentLanguageCode))
+                    {
+                         <li><a class="dropdown-item" href="?mode=original">Original (@Model.Post.ContentLanguageCode)</a></li>
+                    }
+                </ul>
+            </div>
         </div>
 
         <hr class="d-none d-md-block" />
@@ -155,7 +187,28 @@
     }
 
     <section class="post-content clearfix">
-        <partial name="_PostContentRender" model="Model.Post.RawPostContent" />
+        @if (HttpContext.Request.Query["mode"] == "original")
+        {
+            <partial name="_PostContentRender" model="Model.Post.RawPostContent" />
+        }
+        else if (CultureInfo.CurrentUICulture.Name == "zh-CN" && !string.IsNullOrWhiteSpace(Model.Post.LocalizedChineseContent))
+        {
+             <partial name="_PostContentRender" model="Model.Post.LocalizedChineseContent" />
+             <div class="alert alert-info mt-3">
+                 This content is automatically translated to Chinese. <a href="?mode=original">View Original</a>
+             </div>
+        }
+        else if (CultureInfo.CurrentUICulture.Name == "en-US" && !string.IsNullOrWhiteSpace(Model.Post.LocalizedEnglishContent))
+        {
+             <partial name="_PostContentRender" model="Model.Post.LocalizedEnglishContent" />
+             <div class="alert alert-info mt-3">
+                 This content is automatically translated to English. <a href="?mode=original">View Original</a>
+             </div>
+        }
+        else 
+        {
+            <partial name="_PostContentRender" model="Model.Post.RawPostContent" />
+        }
     </section>
 
     @if (BlogConfig.ContentSettings.ShowPostFooter)

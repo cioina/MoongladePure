@@ -56,6 +56,7 @@ namespace MoongladePure.Web.BackgroundJobs
                         .AsNoTracking()
                         .Where(p => p.IsPublished)
                         .Where(p => !p.IsDeleted)
+                        .Where(p => p.PubDateUtc >= new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc))
                         .OrderByDescending(p => p.PubDateUtc)
                         .ToListAsync();
 
@@ -69,33 +70,72 @@ namespace MoongladePure.Web.BackgroundJobs
                         logger.LogInformation("Processing AI for post with slug: {PostSlug}...",
                             trackedPost.Slug);
 
-                        if (!trackedPost.ContentAbstract.EndsWith("--Qwen3"))
+                        // Generate Chinese abstract
+                        if (string.IsNullOrWhiteSpace(trackedPost.ContentAbstractZh) || !trackedPost.ContentAbstractZh.EndsWith("--AI Generated"))
                         {
                             try
                             {
-                                logger.LogInformation("Generating OpenAi abstract for post with slug: {PostSlug}...",
+                                logger.LogInformation("Generating OpenAi Chinese abstract for post with slug: {PostSlug}...",
                                     trackedPost.Slug);
-                                var content = trackedPost.PostContent.Length > LengthAiCanProcess
-                                    ? trackedPost.PostContent.Substring(trackedPost.PostContent.Length - LengthAiCanProcess, LengthAiCanProcess)
-                                    : trackedPost.PostContent;
+                                var content = trackedPost.RawContent.Length > LengthAiCanProcess
+                                    ? trackedPost.RawContent.Substring(trackedPost.RawContent.Length - LengthAiCanProcess, LengthAiCanProcess)
+                                    : trackedPost.RawContent;
 
                                 var abstractForPost =
-                                    await openAi.GenerateAbstract($"# {trackedPost.Title}" + "\r\n" + content);
+                                    await openAi.GenerateAbstract($"# {trackedPost.Title}" + "\r\n" + content, "Chinese");
 
                                 if (abstractForPost.Length > 1000)
                                 {
                                     abstractForPost = abstractForPost[..1000] + "...";
                                 }
 
-                                logger.LogInformation("Generated OpenAi abstract for post with slug: {PostSlug}. New abstract: {Abstract}",
+                                logger.LogInformation("Generated OpenAi Chinese abstract for post with slug: {PostSlug}. New abstract: {Abstract}",
                                     trackedPost.Slug, abstractForPost.SafeSubstring(100));
-                                trackedPost.ContentAbstract = abstractForPost + "--Qwen3";
+                                trackedPost.ContentAbstractZh = abstractForPost + "--AI Generated";
                                 context.Post.Update(trackedPost);
                                 await context.SaveChangesAsync();
                             }
                             catch (Exception e)
                             {
-                                logger.LogCritical(e, "Failed to generate OpenAi abstract!");
+                                logger.LogCritical(e, "Failed to generate OpenAi Chinese abstract!");
+                            }
+                            finally
+                            {
+                                // Sleep to avoid too many requests. Random 0-15 minutes.
+                                var minutesToSleep = new Random().Next(0, 15);
+                                logger.LogInformation("Sleeping for {Minutes} minutes...", minutesToSleep);
+                                await Task.Delay(TimeSpan.FromMinutes(minutesToSleep));
+                            }
+                        }
+
+                        // Generate English abstract
+                        if (string.IsNullOrWhiteSpace(trackedPost.ContentAbstractEn) || !trackedPost.ContentAbstractEn.EndsWith("--AI Generated"))
+                        {
+                            try
+                            {
+                                logger.LogInformation("Generating OpenAi English abstract for post with slug: {PostSlug}...",
+                                    trackedPost.Slug);
+                                var content = trackedPost.RawContent.Length > LengthAiCanProcess
+                                    ? trackedPost.RawContent.Substring(trackedPost.RawContent.Length - LengthAiCanProcess, LengthAiCanProcess)
+                                    : trackedPost.RawContent;
+
+                                var abstractForPost =
+                                    await openAi.GenerateAbstract($"# {trackedPost.Title}" + "\r\n" + content, "English");
+
+                                if (abstractForPost.Length > 1000)
+                                {
+                                    abstractForPost = abstractForPost[..1000] + "...";
+                                }
+
+                                logger.LogInformation("Generated OpenAi English abstract for post with slug: {PostSlug}. New abstract: {Abstract}",
+                                    trackedPost.Slug, abstractForPost.SafeSubstring(100));
+                                trackedPost.ContentAbstractEn = abstractForPost + "--AI Generated";
+                                context.Post.Update(trackedPost);
+                                await context.SaveChangesAsync();
+                            }
+                            catch (Exception e)
+                            {
+                                logger.LogCritical(e, "Failed to generate OpenAi English abstract!");
                             }
                             finally
                             {
@@ -140,9 +180,9 @@ namespace MoongladePure.Web.BackgroundJobs
                             {
                                 logger.LogInformation("Generating OpenAi comment for post with slug: {PostSlug}...",
                                     trackedPost.Slug);
-                                var content = trackedPost.PostContent.Length > LengthAiCanProcess
-                                    ? trackedPost.PostContent.Substring(trackedPost.PostContent.Length - LengthAiCanProcess, LengthAiCanProcess)
-                                    : trackedPost.PostContent;
+                                var content = trackedPost.RawContent.Length > LengthAiCanProcess
+                                    ? trackedPost.RawContent.Substring(trackedPost.RawContent.Length - LengthAiCanProcess, LengthAiCanProcess)
+                                    : trackedPost.RawContent;
 
                                 var newComment = await openAi.GenerateComment($"# {trackedPost.Title}" + "\r\n" + content);
                                 logger.LogInformation("Generated OpenAi comment for post with slug: {PostSlug}. New comment: {Comment}",
@@ -184,7 +224,7 @@ namespace MoongladePure.Web.BackgroundJobs
                                 .Select(pt => pt.Tag)
                                 .ToListAsync();
 
-                            var newTags = await openAi.GenerateTags(trackedPost.PostContent);
+                            var newTags = await openAi.GenerateTags(trackedPost.RawContent);
                             var newTagsToAdd = new List<string>();
                             foreach (var newTag in newTags
                                          .Select(t => t.Replace('-', ' ')))

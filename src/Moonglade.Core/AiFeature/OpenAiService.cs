@@ -17,10 +17,10 @@ public class OpenAiService(
     private const string WorkPrompt = "好了，根据上面的文章，现在开始你的评论工作吧！别忘了，不要重复输出文章内容，只根据文章内容写出一篇恰当的博客回复和作者讨论。（无需问候和署名，不要使用标题）";
 
     private const string AbstractPrompt =
-        "我刚刚写完了一篇博客，但是我需要为这篇博客写一个摘要。摘要需要能够简明概括这篇博客讲了什么，并且保留一些有趣的问题来吸引读者来阅读、启发读者思考。写一篇好的摘要还需要试图打开读者的思想，让人忍不住对文章的内容进行畅想从而阅读全文，并且能够借文章的内容延伸思考，别忘了摘要的最后可以提出问题吸引读者自己找到答案。我想让你来帮我完成这篇摘要。首先你需要判断文章的编写语言再开始编写摘要。摘要应当讨论文章本身，不要出现'作者'。摘要的长度应当非常精简，在500字左右，不要超过700字。你的摘要需要和下面博文的语言相同，例如：如果博文是中文，使用中文摘要。如果博文是英文，则使用英文进行摘要。无需问候和署名。**不要**使用markdown！**不要**分段！！！你是在做摘要而不要重新反复复述文章的内容。只输出写好的摘要！！！不要输出其它内容。不要强调你的摘要的特点。原本的博客文章如下：";
+        "我刚刚写完了一篇博客，但是我需要为这篇博客写一个摘要。摘要需要能够简明概括这篇博客讲了什么，并且保留一些有趣的问题来吸引读者来阅读、启发读者思考。写一篇好的摘要还需要试图打开读者的思想，让人忍不住对文章的内容进行畅想从而阅读全文，并且能够借文章的内容延伸思考，别忘了摘要的最后可以提出问题吸引读者自己找到答案。我想让你来帮我完成这篇摘要。摘要应当讨论文章本身，不要出现'作者'。摘要的长度应当非常精简，在500字左右，不要超过700字。你的摘要必须使用{0}编写。无需问候和署名。**不要**使用markdown！**不要**分段！！！你是在做摘要而不要重新反复复述文章的内容。只输出写好的摘要！！！不要输出其它内容。不要强调你的摘要的特点。原本的博客文章如下：";
 
     private const string WorkAbstractPrompt =
-        "好了，根据上面的文章，现在开始你的摘要工作吧！别忘了，无需问候和署名。**不要**使用markdown！**不要**分段！！！你是在做摘要而不要重新反复复述文章的内容。只输出写好的摘要！！！不要输出其它内容。不要强调你的摘要的特点。";
+        "好了，根据上面的文章，现在使用{0}语言开始你的摘要工作吧！别忘了，无需问候和署名。**不要**使用markdown！**不要**分段！！！你是在做摘要而不要重新反复复述文章的内容。只输出写好的摘要！！！不要输出其它内容。不要强调你的摘要的特点。使用{0}输出。";
 
     private const string TagsPrompt =
         "我刚刚写完了一篇博客，但是我需要为这篇博客写六个 Tag。Tag 是一种关键词，用来描述这篇博客的主题。Tag 需要简洁明了，能够准确描述这篇博客的主题。Tag 之间用逗号分隔。优秀的 Tag 可以方便搜索引擎更好的索引这篇博客，也可以让读者更好的了解这篇博客的主题。我想让你来帮我完成这六个 Tag。Tag 的数量应当为六个，不要多也不要少。Tag 的长度应当非常精简，不要超过 20 个字符。你的 Tag 需要使用英文。原本的博客文章如下：";
@@ -43,17 +43,17 @@ public class OpenAiService(
         return response.GetAnswerPart();
     }
 
-    public async Task<string> GenerateAbstract(string content, CancellationToken token = default)
+    public async Task<string> GenerateAbstract(string content, string language, CancellationToken token = default)
     {
         var response = await Ask(
             $"""
-             {AbstractPrompt}
+             {string.Format(AbstractPrompt, language)}
 
              =====================
              {content}
              =====================
 
-             {WorkAbstractPrompt}
+             {string.Format(WorkAbstractPrompt, language)}
              """, token);
         return response.GetAnswerPart();
     }
@@ -68,7 +68,7 @@ public class OpenAiService(
             cancellationToken: token);
     }
 
-    public Task<string[]> GenerateTags(string trackedPostPostContent, CancellationToken token = default)
+    public Task<string[]> GenerateTags(string trackedPostRawContent, CancellationToken token = default)
     {
         return retryEngine.RunWithRetry(
             attempts: 8,
@@ -79,7 +79,7 @@ public class OpenAiService(
                      {TagsPrompt}
 
                      =====================
-                     {trackedPostPostContent}
+                     {trackedPostRawContent}
                      =====================
 
                      {WorkTagsPrompt}
@@ -103,5 +103,26 @@ public class OpenAiService(
 
                 return tags;
             });
+    }
+
+    private const string LanguagePrompt =
+        "我需要你帮我探测一篇博客的语言。你需要阅读文章的内容，然后判断这篇文章使用的是什么语言。例如：中文、English、Français。请只输出语言的 BCP 47 语言代码（例如 zh-CN, en-US, fr-FR），不要输出其他内容。如果无法识别，请输出 'und'。文章内容如下：";
+
+    private const string WorkLanguagePrompt =
+        "好了，根据上面的文章，现在开始你的语言探测工作吧！请只输出语言的 BCP 47 语言代码（例如 zh-CN, en-US, fr-FR），不要输出其他内容。如果无法识别，请输出 'und'。";
+
+    public async Task<string> DetectLanguage(string content, CancellationToken token = default)
+    {
+        var response = await Ask(
+            $"""
+             {LanguagePrompt}
+
+             =====================
+             {content}
+             =====================
+
+             {WorkLanguagePrompt}
+             """, token);
+        return response.GetAnswerPart().Trim();
     }
 }

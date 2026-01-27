@@ -11,13 +11,17 @@ internal class PostConfiguration : IEntityTypeConfiguration<PostEntity>
     {
         builder.Property(e => e.Id).ValueGeneratedNever();
         builder.Property(e => e.CommentEnabled);
-        builder.Property(e => e.ContentAbstract).HasMaxLength(1024);
+        builder.Property(e => e.ContentAbstractZh).HasMaxLength(1024);
+        builder.Property(e => e.ContentAbstractEn).HasMaxLength(1024);
         builder.Property(e => e.ContentLanguageCode).HasMaxLength(8);
 
         builder.Property(e => e.CreateTimeUtc).HasColumnType("datetime");
         builder.Property(e => e.PubDateUtc).HasColumnType("datetime");
         builder.Property(e => e.LastModifiedUtc).HasColumnType("datetime");
-        builder.Property(e => e.PostContent);
+        builder.Property(e => e.LocalizeJobRunAt).HasColumnType("datetime");
+        builder.Property(e => e.RawContent);
+        builder.Property(e => e.LocalizedChineseContent);
+        builder.Property(e => e.LocalizedEnglishContent);
 
         builder.Property(e => e.Author).HasMaxLength(64);
         builder.Property(e => e.Slug).HasMaxLength(128);

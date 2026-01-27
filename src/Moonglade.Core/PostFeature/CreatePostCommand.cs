@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using MoongladePure.Core.TagFeature;
-using MoongladePure.Data.Spec;
 using MoongladePure.Utils;
 
 namespace MoongladePure.Core.PostFeature;
@@ -19,8 +18,9 @@ public class CreatePostCommandHandler(
         {
             CommentEnabled = request.Payload.EnableComment,
             Id = Guid.NewGuid(),
-            PostContent = request.Payload.EditorContent,
-            ContentAbstract = "...",
+            RawContent = request.Payload.EditorContent,
+            ContentAbstractZh = "...",
+            ContentAbstractEn = "...",
             CreateTimeUtc = DateTime.UtcNow,
             LastModifiedUtc = DateTime.UtcNow, // Fix draft orders
             Slug = request.Payload.Slug.ToLower().Trim(),
@@ -43,14 +43,29 @@ public class CreatePostCommandHandler(
             }
         };
 
+        // --- FIX START ---
         // check if exist same slug under the same day
+        // We use a Range comparison (>= and <) instead of PostSpec.
+        // PostSpec likely uses .Date == .Date which crashes the Pomelo NullabilityProcessor
+        // on nullable DateTime columns.
         var todayUtc = DateTime.UtcNow.Date;
-        if (await postRepo.AnyAsync(new PostSpec(post.Slug, todayUtc), ct))
+        var tomorrowUtc = todayUtc.AddDays(1);
+
+        // Assuming postRepo.AnyAsync accepts an Expression<Func<PostEntity, bool>>
+        // If it strictly requires ISpecification, you will need to create a new PostDateRangeSpec
+        var slugToCheck = post.Slug;
+        var isDuplicate = await postRepo.AnyAsync(p =>
+            p.Slug == slugToCheck &&
+            p.PubDateUtc >= todayUtc &&
+            p.PubDateUtc < tomorrowUtc, ct);
+
+        if (isDuplicate)
         {
             var uid = Guid.NewGuid();
             post.Slug += $"-{uid.ToString().ToLower()[..8]}";
             logger.LogInformation("Found conflict for post slug, generated new slug: {PostSlug}", post.Slug);
         }
+        // --- FIX END ---
 
         // compute hash
         var input = $"{post.Slug}#{post.PubDateUtc.GetValueOrDefault():yyyyMMdd}";

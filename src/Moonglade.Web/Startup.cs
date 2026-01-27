@@ -12,6 +12,7 @@ using Aiursoft.DbTools.Switchable;
 using Aiursoft.GptClient;
 using Aiursoft.WebTools.Abstractions.Models;
 using AspNetCoreRateLimit;
+using Aiursoft.Dotlang.Shared;
 using MoongladePure.Core.AiFeature;
 using MoongladePure.Data.Infrastructure;
 using MoongladePure.Data.InMemory;
@@ -88,6 +89,7 @@ namespace MoongladePure.Web
             if (runBackgroundJobs)
             {
                 services.AddSingleton<IHostedService, PostAiProcessingJob>();
+                services.AddSingleton<IHostedService, LangDetectJob>();
             }
 
             services.AddHttpClient();
@@ -104,6 +106,15 @@ namespace MoongladePure.Web
                 .AddImageStorage(configuration.GetSection("Storage"),
                     isTest: environment.IsDevelopment() || EntryExtends.IsInUnitTests())
                 .Configure<List<ManifestIcon>>(configuration.GetSection("ManifestIcons"));
+
+            services.AddScoped<OllamaBasedTranslatorEngine>();
+            services.AddScoped<MarkdownShredder>();
+            services.Configure<TranslateOptions>(options =>
+            {
+                options.OllamaInstance = configuration["OpenAI:CompletionApiUrl"];
+                options.OllamaModel = configuration["OpenAI:Model"];
+                options.OllamaToken = configuration["OpenAI:Token"];
+            });
 
             var (connectionString, dbType, allowCache) = configuration.GetDbSettings();
             services.AddSwitchableRelationalDatabase(
