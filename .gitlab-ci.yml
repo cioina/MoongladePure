@@ -6,7 +6,6 @@ stages:
     - deploy
 
 before_script:
-    - "export DOTNET_CLI_TELEMETRY_OPTOUT=1"
     - "export PATH=$PATH:$HOME/.dotnet/tools"
     - "which jb || dotnet tool install JetBrains.ReSharper.GlobalTools --global --add-source https://nuget.aiursoft.com/v3/index.json --configfile ./nuget.config -v d"
     - "which reportgenerator || dotnet tool install dotnet-reportgenerator-globaltool --global --add-source https://nuget.aiursoft.com/v3/index.json --configfile ./nuget.config -v d"
@@ -15,6 +14,8 @@ before_script:
 
 variables:
     GIT_CLONE_PATH: "$CI_BUILDS_DIR/$CI_PROJECT_NAME/$CI_PIPELINE_ID"
+    MSBUILDDISABLENODEREUSE: "1"
+    DOTNET_CLI_TELEMETRY_OPTOUT: "1"
 
 restore:
     stage: build
@@ -125,35 +126,24 @@ deploy_docker_all:
         - if [ "$CI_COMMIT_REF_NAME" = "master" ]; then TAG="latest"; else TAG="$CI_COMMIT_REF_NAME"; fi
         - if [ "$CI_PROJECT_NAMESPACE" = "anduin" ]; then HUB_NAMESPACE="anduin2019"; else HUB_NAMESPACE="$CI_PROJECT_NAMESPACE"; fi
         
-        # Build once
-        - LOCAL_IMAGE="$CI_PROJECT_NAME:$TAG"
-        - echo "Building Docker image $LOCAL_IMAGE..."
-        - docker build . -t $LOCAL_IMAGE
+        - LOCAL_TARGET_COM="hub.aiursoft.com/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME:$TAG"
+        - LOCAL_TARGET_CN="hub.aiursoft.cn/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME:$TAG"
+        - PUBLIC_TARGET="$HUB_NAMESPACE/$CI_PROJECT_NAME:$TAG"
         
-        # Push to hub.aiursoft.com
-        - echo "Pushing to hub.aiursoft.com..."
-        - TARGET="hub.aiursoft.com/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME:$TAG"
-        - docker tag $LOCAL_IMAGE $TARGET
         - echo "$LOCAL_DOCKER_PASSWORD" | docker login hub.aiursoft.com -u "$LOCAL_DOCKER_USERNAME" --password-stdin
-        - docker save $TARGET -o temp.tar
-        - regctl image import $TARGET temp.tar
-        - rm ./temp.tar
-        
-        # Push to hub.aiursoft.cn
-        - echo "Pushing to hub.aiursoft.cn..."
-        - TARGET="hub.aiursoft.cn/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME:$TAG"
-        - docker tag $LOCAL_IMAGE $TARGET
         - echo "$CN_DOCKER_PASSWORD" | docker login hub.aiursoft.cn -u "$CN_DOCKER_USERNAME" --password-stdin
-        - docker save $TARGET -o temp.tar
-        - regctl image import $TARGET temp.tar
-        - rm ./temp.tar
-        
-        # Push to Docker Hub
-        - echo "Pushing to Docker Hub..."
-        - TARGET="$HUB_NAMESPACE/$CI_PROJECT_NAME:$TAG"
-        - docker tag $LOCAL_IMAGE $TARGET
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-        - docker push $TARGET
+        
+        - docker buildx use aiur-global-builder
+        - echo "Building and pushing multi-arch to all registries..."
+        - |
+            docker buildx build . \
+              --platform linux/amd64,linux/arm64 \
+              -t $LOCAL_TARGET_COM \
+              -t $LOCAL_TARGET_CN \
+              -t $PUBLIC_TARGET \
+              --push
+
     rules:
         - if: '$CI_COMMIT_BRANCH == "master"'
           exists:
